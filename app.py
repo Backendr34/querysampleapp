@@ -6,29 +6,32 @@ import os
 app = Flask(__name__)
 
 # Configure logging
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.DEBUG)
 
 # Initialize the database
 def init_db():
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
-        port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
-    )
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS queries (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        query TEXT NOT NULL
-    )''')
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
+            port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
+        )
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS queries (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            query TEXT NOT NULL
+        )''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logging.error("Error initializing database: %s", e)
 
 # Route for the query form
 @app.route('/')
@@ -59,7 +62,7 @@ def submit_query():
         conn.commit()
         cursor.close()
     except Exception as e:
-        logging.error("Error occurred while submitting query from %s: %s", email, e)
+        logging.error("Error occurred while submitting query from %s: %s", email, e, exc_info=True)
         return "An error occurred while submitting your query.", 500
     finally:
         conn.close()
