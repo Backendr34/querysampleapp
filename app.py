@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template
-import sqlite3
+import psycopg2
 import logging
 
 app = Flask(__name__)
@@ -9,17 +9,24 @@ logging.basicConfig(level=logging.ERROR)
 
 # Initialize the database
 def init_db():
-    conn = sqlite3.connect('queries.db')
+    conn = psycopg2.connect(
+        dbname='your_db_name',
+        user='your_username',
+        password='your_password',
+        host='localhost',  # or your database host
+        port='5432'        # default PostgreSQL port
+    )
     cursor = conn.cursor()
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS queries (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
         phone TEXT NOT NULL,
         query TEXT NOT NULL
     )''')
     conn.commit()
+    cursor.close()
     conn.close()
 
 # Route for the query form
@@ -36,15 +43,22 @@ def submit_query():
     query = request.form['query']
 
     try:
-        conn = sqlite3.connect('queries.db')
+        conn = psycopg2.connect(
+            dbname='your_db_name',
+            user='your_username',
+            password='your_password',
+            host='localhost',  # or your database host
+            port='5432'        # default PostgreSQL port
+        )
         cursor = conn.cursor()
         cursor.execute('''
         INSERT INTO queries (name, email, phone, query)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
         ''', (name, email, phone, query))
         conn.commit()
+        cursor.close()
     except Exception as e:
-        logging.error("Error occurred: %s", e)
+        logging.error("Error occurred while submitting query from %s: %s", email, e)
         return "An error occurred while submitting your query.", 500
     finally:
         conn.close()
@@ -53,6 +67,4 @@ def submit_query():
 
 if __name__ == '__main__':
     init_db()
-    
-
-   
+    app.run(host='0.0.0.0', port=5000)
