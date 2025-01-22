@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template
-import psycopg2
+from pymongo import MongoClient
 import logging
 import os
 
@@ -11,25 +11,9 @@ logging.basicConfig(level=logging.DEBUG)
 # Initialize the database
 def init_db():
     try:
-        conn = psycopg2.connect(
-            dbname=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
-            port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
-        )
-        cursor = conn.cursor()
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS queries (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            query TEXT NOT NULL
-        )''')
-        conn.commit()
-        cursor.close()
-        conn.close()
+        client = MongoClient(os.getenv('MONGODB_URI'))
+        db = client[os.getenv('DB_NAME')]
+        db.queries.create_index('email', unique=True)
     except Exception as e:
         logging.error("Error initializing database: %s", e)
 
@@ -47,25 +31,17 @@ def submit_query():
     query = request.form['query']
 
     try:
-        conn = psycopg2.connect(
-            dbname=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
-            port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
-        )
-        cursor = conn.cursor()
-        cursor.execute('''
-        INSERT INTO queries (name, email, phone, query)
-        VALUES (%s, %s, %s, %s)
-        ''', (name, email, phone, query))
-        conn.commit()
-        cursor.close()
+        client = MongoClient(os.getenv('MONGODB_URI'))
+        db = client[os.getenv('DB_NAME')]
+        db.queries.insert_one({
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'query': query
+        })
     except Exception as e:
         logging.error("Error occurred while submitting query from %s: %s", email, e, exc_info=True)
         return "An error occurred while submitting your query.", 500
-    finally:
-        conn.close()
 
     return 'Query submitted successfully!'
 
