@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template
 import psycopg2
 import logging
+import os
 
 app = Flask(__name__)
 
@@ -10,11 +11,11 @@ logging.basicConfig(level=logging.ERROR)
 # Initialize the database
 def init_db():
     conn = psycopg2.connect(
-        dbname='your_db_name',
-        user='your_username',
-        password='your_password',
-        host='localhost',  # or your database host
-        port='5432'        # default PostgreSQL port
+        dbname=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
+        port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
     )
     cursor = conn.cursor()
     cursor.execute('''
@@ -44,11 +45,11 @@ def submit_query():
 
     try:
         conn = psycopg2.connect(
-            dbname='your_db_name',
-            user='your_username',
-            password='your_password',
-            host='localhost',  # or your database host
-            port='5432'        # default PostgreSQL port
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST'),  # This should be the host where your database is deployed
+            port=os.getenv('DB_PORT', '5432')  # Default PostgreSQL port
         )
         cursor = conn.cursor()
         cursor.execute('''
