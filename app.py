@@ -1,7 +1,11 @@
 from flask import Flask, request, render_template
 import sqlite3
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
 
 # Initialize the database
 def init_db():
@@ -31,17 +35,24 @@ def submit_query():
     phone = request.form['phone']
     query = request.form['query']
 
-    conn = sqlite3.connect('queries.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO queries (name, email, phone, query)
-    VALUES (?, ?, ?, ?)
-    ''', (name, email, phone, query))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('queries.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        INSERT INTO queries (name, email, phone, query)
+        VALUES (?, ?, ?, ?)
+        ''', (name, email, phone, query))
+        conn.commit()
+    except Exception as e:
+        logging.error("Error occurred: %s", e)
+        return "An error occurred while submitting your query.", 500
+    finally:
+        conn.close()
 
     return 'Query submitted successfully!'
 
 if __name__ == '__main__':
     init_db()
+    
+
    
